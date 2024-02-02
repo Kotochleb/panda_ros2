@@ -126,7 +126,7 @@ void Robot::initializeTorqueControl() {
           out.motion_finished = finish_;
           return out;
         },
-        true, franka::kMaxCutoffFrequency);
+        true, franka::kDefaultCutoffFrequency);
     }
     catch(franka::ControlException& e){
       std::cout <<  e.what() << std::endl;
