@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ controller_interface::return_type MoveToStartExampleController::update(
     for (auto& command_interface : command_interfaces_) {
       command_interface.set_value(0);
     }
+    this->get_node()->set_parameter({"process_finished", true});
   }
   return controller_interface::return_type::OK;
 }
@@ -72,6 +73,7 @@ controller_interface::return_type MoveToStartExampleController::update(
 CallbackReturn MoveToStartExampleController::on_init() {
   q_goal_ << 0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4;
   try {
+    auto_declare<bool>("process_finished", false);
     auto_declare<std::string>("arm_id", "panda");
     auto_declare<std::vector<double>>("k_gains", {});
     auto_declare<std::vector<double>>("d_gains", {});

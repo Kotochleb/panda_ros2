@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "franka_example_controllers/cartesian_velocity_example_controller.hpp"
+#include <franka_example_controllers/cartesian_velocity_example_controller.hpp>
+#include <franka_example_controllers/default_robot_behavior_utils.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -21,113 +22,91 @@
 
 #include <Eigen/Eigen>
 
+using namespace std::chrono_literals;
+
 namespace franka_example_controllers {
 
 controller_interface::InterfaceConfiguration
 CartesianVelocityExampleController::command_interface_configuration() const {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  config.names.push_back("ee_cartesian_velocity/tx");
-  config.names.push_back("ee_cartesian_velocity/ty");
-  config.names.push_back("ee_cartesian_velocity/tz");
-  config.names.push_back("ee_cartesian_velocity/omega_x");
-  config.names.push_back("ee_cartesian_velocity/omega_y");
-  config.names.push_back("ee_cartesian_velocity/omega_z");
+  config.names = franka_cartesian_velocity_->get_command_interface_names();
 
   return config;
 }
 
 controller_interface::InterfaceConfiguration
 CartesianVelocityExampleController::state_interface_configuration() const {
-  controller_interface::InterfaceConfiguration config;
-  config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  for (int i = 1; i < 10; ++i) {
-    config.names.push_back("ee_cartesian_velocity/0" + std::to_string(i));
-  }
-  for (int i = 10; i < 16; ++i) {
-    config.names.push_back("ee_cartesian_velocity/" + std::to_string(i));
-  }
-  
-  return config;
+  return controller_interface::InterfaceConfiguration{
+      controller_interface::interface_configuration_type::NONE};
 }
 
 controller_interface::return_type CartesianVelocityExampleController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& period) {
-  // updateJointStates();
-  init_time_ = init_time_ + period;
-  double time_max = 4.0;
-  double v_max = 0.05;
-  double angle = M_PI / 4.0;
-  double cycle = std::floor(
-      pow(-1.0, (init_time_.seconds() - std::fmod(init_time_.seconds(), time_max)) / time_max));
-  double v = cycle * v_max / 2.0 * (1.0 - std::cos(2.0 * M_PI / time_max * init_time_.seconds()));
-  double v_x = std::cos(angle) * v;
-  double v_z = -std::sin(angle) * v;
-  std::array<double, 6> command = {{v_x, 0.0, v_z, 0.0, 0.0, 0.0}};
-  for(int i = 0; i < 6; i++){
-    command_interfaces_[i].set_value(command[i]);
+  elapsed_time_ = elapsed_time_ + period;
+
+  double cycle = std::floor(pow(
+      -1.0,
+      (elapsed_time_.seconds() - std::fmod(elapsed_time_.seconds(), k_time_max_)) / k_time_max_));
+  double v =
+      cycle * k_v_max_ / 2.0 * (1.0 - std::cos(2.0 * M_PI / k_time_max_ * elapsed_time_.seconds()));
+  double v_x = std::cos(k_angle_) * v;
+  double v_z = -std::sin(k_angle_) * v;
+
+  Eigen::Vector3d cartesian_linear_velocity(v_x, 0.0, v_z);
+  Eigen::Vector3d cartesian_angular_velocity(0.0, 0.0, 0.0);
+
+  if (franka_cartesian_velocity_->setCommand(cartesian_linear_velocity,
+                                             cartesian_angular_velocity)) {
+    return controller_interface::return_type::OK;
+  } else {
+    RCLCPP_FATAL(get_node()->get_logger(),
+                 "Set command failed. Did you activate the elbow command interface?");
+    return controller_interface::return_type::ERROR;
   }
-  return controller_interface::return_type::OK;
 }
 
 CallbackReturn CartesianVelocityExampleController::on_init() {
-  try {
-    auto_declare<std::string>("arm_id", "panda");
-    auto_declare<std::vector<double>>("k_gains", {});
-    auto_declare<std::vector<double>>("d_gains", {});
-  } catch (const std::exception& e) {
-    fprintf(stderr, "Exception thrown during init stage with message: %s \n", e.what());
-    return CallbackReturn::ERROR;
-  }
   return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn CartesianVelocityExampleController::on_configure(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  arm_id_ = get_node()->get_parameter("arm_id").as_string();
-  auto k_gains = get_node()->get_parameter("k_gains").as_double_array();
-  auto d_gains = get_node()->get_parameter("d_gains").as_double_array();
-  if (k_gains.empty()) {
-    RCLCPP_FATAL(get_node()->get_logger(), "k_gains parameter not set");
-    return CallbackReturn::FAILURE;
+  franka_cartesian_velocity_ =
+      std::make_unique<franka_semantic_components::FrankaCartesianVelocityInterface>(
+          franka_semantic_components::FrankaCartesianVelocityInterface(k_elbow_activated_));
+
+  auto client = get_node()->create_client<franka_msgs::srv::SetFullCollisionBehavior>(
+      "service_server/set_full_collision_behavior");
+  auto request = DefaultRobotBehavior::getDefaultCollisionBehaviorRequest();
+
+  auto future_result = client->async_send_request(request);
+  future_result.wait_for(1000ms);
+
+  auto success = future_result.get();
+  if (!success) {
+    RCLCPP_FATAL(get_node()->get_logger(), "Failed to set default collision behavior.");
+    return CallbackReturn::ERROR;
+  } else {
+    RCLCPP_INFO(get_node()->get_logger(), "Default collision behavior set.");
   }
-  if (k_gains.size() != static_cast<uint>(num_joints)) {
-    RCLCPP_FATAL(get_node()->get_logger(), "k_gains should be of size %d but is of size %ld",
-                 num_joints, k_gains.size());
-    return CallbackReturn::FAILURE;
-  }
-  if (d_gains.empty()) {
-    RCLCPP_FATAL(get_node()->get_logger(), "d_gains parameter not set");
-    return CallbackReturn::FAILURE;
-  }
-  if (d_gains.size() != static_cast<uint>(num_joints)) {
-    RCLCPP_FATAL(get_node()->get_logger(), "d_gains should be of size %d but is of size %ld",
-                 num_joints, d_gains.size());
-    return CallbackReturn::FAILURE;
-  }
-  for (int i = 0; i < num_joints; ++i) {
-    d_gains_(i) = d_gains.at(i);
-    k_gains_(i) = k_gains.at(i);
-  }
-  dq_filtered_.setZero();
+
   return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn CartesianVelocityExampleController::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  // updateJointStates();
-  initial_q_ = q_;
-  start_time_ = this->get_node()->now();
-  init_time_ = rclcpp::Duration(0, 0);
+  franka_cartesian_velocity_->assign_loaned_command_interfaces(command_interfaces_);
+  elapsed_time_ = rclcpp::Duration(0, 0);
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn CartesianVelocityExampleController::on_error(
-  const rclcpp_lifecycle::State& /*previous_state*/){
-    RCLCPP_ERROR(this->get_node()->get_logger(), "error encountered!");
-    return CallbackReturn::ERROR;
-  }
+controller_interface::CallbackReturn CartesianVelocityExampleController::on_deactivate(
+    const rclcpp_lifecycle::State& /*previous_state*/) {
+  franka_cartesian_velocity_->release_interfaces();
+  return CallbackReturn::SUCCESS;
+}
 
 }  // namespace franka_example_controllers
 #include "pluginlib/class_list_macros.hpp"

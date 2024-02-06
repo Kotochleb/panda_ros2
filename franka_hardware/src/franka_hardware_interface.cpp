@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <franka_hardware/franka_hardware_interface.hpp>
-
+#include <fmt/core.h>
 #include <algorithm>
 #include <cmath>
 #include <exception>
@@ -27,10 +26,28 @@
 #include <rclcpp/macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include "franka_hardware/franka_hardware_interface.hpp"
+
 namespace franka_hardware {
 
 using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
+
+FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot)
+    : FrankaHardwareInterface() {
+  robot_ = std::move(robot);  // NOLINT(cppcoreguidelines-prefer-member-initializer)
+}
+
+FrankaHardwareInterface::FrankaHardwareInterface()
+    : command_interfaces_info_({
+          {hardware_interface::HW_IF_EFFORT, kNumberOfJoints, effort_interface_claimed_},
+          {hardware_interface::HW_IF_VELOCITY, kNumberOfJoints, velocity_joint_interface_claimed_},
+          {hardware_interface::HW_IF_POSITION, kNumberOfJoints, position_joint_interface_claimed_},
+          {k_HW_IF_ELBOW_COMMAND, hw_elbow_command_names_.size(), elbow_command_interface_claimed_},
+          {k_HW_IF_CARTESIAN_VELOCITY, hw_cartesian_velocities_.size(),
+           velocity_cartesian_interface_claimed_},
+          {k_HW_IF_CARTESIAN_POSE, hw_cartesian_pose_.size(), pose_cartesian_interface_claimed_},
+      }) {}
 
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
   std::vector<StateInterface> state_interfaces;
@@ -111,6 +128,31 @@ CallbackReturn FrankaHardwareInterface::on_deactivate(
   return CallbackReturn::SUCCESS;
 }
 
+template <typename CommandType>
+void initializeCommand(bool& first_update,
+                       const bool& interface_running,
+                       CommandType& hw_command,
+                       const CommandType& new_command) {
+  if (first_update && interface_running) {
+    hw_command = new_command;
+    first_update = false;
+  }
+}
+
+void FrankaHardwareInterface::initializePositionCommands(const franka::RobotState& robot_state) {
+  initializeCommand(first_elbow_update_, elbow_command_interface_running_, hw_elbow_command_,
+                    robot_state.elbow_c);
+  initializeCommand(initial_elbow_state_update_, elbow_command_interface_running_,
+                    initial_elbow_state_, robot_state.elbow_c);
+  initializeCommand(first_position_update_, position_joint_interface_running_,
+                    hw_position_commands_, robot_state.q_d);
+  initializeCommand(first_cartesian_pose_update_, pose_cartesian_interface_running_,
+                    hw_cartesian_pose_, robot_state.O_T_EE_d);
+  initializeCommand(initial_robot_state_update_, true, initial_robot_pose_, robot_state.O_T_EE_d);
+  initializeCommand(initial_joint_position_update_, true, initial_joint_positions_,
+                    robot_state.q_d);
+}
+
 hardware_interface::return_type FrankaHardwareInterface::read(const rclcpp::Time& /*time*/,
                                                               const rclcpp::Duration& /*period*/) {
   
@@ -125,6 +167,12 @@ hardware_interface::return_type FrankaHardwareInterface::read(const rclcpp::Time
   hw_cartesian_velocities_ = hw_franka_robot_state_.O_T_EE_d;
   
   return hardware_interface::return_type::OK;
+}
+
+template <typename CommandType>
+bool hasInfinite(const CommandType& commands) {
+  return std::any_of(commands.begin(), commands.end(),
+                     [](double command) { return !std::isfinite(command); });
 }
 
 hardware_interface::return_type FrankaHardwareInterface::write(const rclcpp::Time& /*time*/,
@@ -212,21 +260,32 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
     }
     if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY) {
       RCLCPP_FATAL(getLogger(), "Joint '%s' has unexpected state interface '%s'. Expected '%s'",
-                   joint.name.c_str(), joint.state_interfaces[0].name.c_str(),
+                   joint.name.c_str(), joint.state_interfaces[1].name.c_str(),
                    hardware_interface::HW_IF_VELOCITY);
     }
     if (joint.state_interfaces[2].name != hardware_interface::HW_IF_EFFORT) {
       RCLCPP_FATAL(getLogger(), "Joint '%s' has unexpected state interface '%s'. Expected '%s'",
-                   joint.name.c_str(), joint.state_interfaces[0].name.c_str(),
+                   joint.name.c_str(), joint.state_interfaces[2].name.c_str(),
                    hardware_interface::HW_IF_EFFORT);
     }
   }
-  std::string robot_ip;
-  try {
-    robot_ip = info_.hardware_parameters.at("robot_ip");
-  } catch (const std::out_of_range& ex) {
-    RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' ! set");
-    return CallbackReturn::ERROR;
+  if (!robot_) {
+    std::string robot_ip;
+    try {
+      robot_ip = info_.hardware_parameters.at("robot_ip");
+    } catch (const std::out_of_range& ex) {
+      RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' is not set");
+      return CallbackReturn::ERROR;
+    }
+    try {
+      RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
+      robot_ = std::make_shared<Robot>(robot_ip, getLogger());
+    } catch (const franka::Exception& e) {
+      RCLCPP_FATAL(getLogger(), "Could not connect to robot");
+      RCLCPP_FATAL(getLogger(), "%s", e.what());
+      return CallbackReturn::ERROR;
+    }
+    RCLCPP_INFO(getLogger(), "Successfully connected to robot");
   }
   try {
     RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());

@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(franka_gripper)
 
-# Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -20,7 +19,7 @@ find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 
-find_package(Franka REQUIRED)
+find_package(Franka 0.13.2 REQUIRED)
 
 add_library(gripper_server SHARED
         src/gripper_action_server.cpp)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ class MotionGenerator {
  private:
   using Vector7i = Eigen::Matrix<int, 7, 1>;
 
-  bool calculateDesiredValues(double t, Vector7d* delta_q_d) const;
+  bool calculateDesiredValues(double time, Vector7d* delta_q_d) const;
   void calculateSynchronizedValues();
 
   static constexpr double kDeltaQMotionFinished = 1e-6;

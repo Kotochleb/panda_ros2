@@ -35,7 +35,6 @@ endforeach()
 add_library(franka_robot_state_broadcaster
         SHARED
         src/franka_robot_state_broadcaster.cpp)
-
 target_include_directories(
   franka_robot_state_broadcaster
         PRIVATE
@@ -57,7 +56,6 @@ install(
         TARGETS franka_robot_state_broadcaster
         DESTINATION lib
 )
-
 install(
         DIRECTORY include/
         DESTINATION include

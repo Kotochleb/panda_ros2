@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include <string>
 
-#include <Eigen/Eigen>
 #include <controller_interface/controller_interface.hpp>
 #include <rclcpp/rclcpp.hpp>
 
@@ -25,31 +24,24 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 namespace franka_example_controllers {
 
 /**
- * The joint impedance example controller moves joint 4 and 5 in a very compliant periodic movement.
+ * The joint velocity example controller
  */
 class JointVelocityExampleController : public controller_interface::ControllerInterface {
  public:
-  using Vector7d = Eigen::Matrix<double, 7, 1>;
-  controller_interface::InterfaceConfiguration command_interface_configuration() const override;
-  controller_interface::InterfaceConfiguration state_interface_configuration() const override;
+  [[nodiscard]] controller_interface::InterfaceConfiguration command_interface_configuration()
+      const override;
+  [[nodiscard]] controller_interface::InterfaceConfiguration state_interface_configuration()
+      const override;
   controller_interface::return_type update(const rclcpp::Time& time,
                                            const rclcpp::Duration& period) override;
   CallbackReturn on_init() override;
   CallbackReturn on_configure(const rclcpp_lifecycle::State& previous_state) override;
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
-  CallbackReturn on_error(const rclcpp_lifecycle::State& previous_state) override;
+
  private:
   std::string arm_id_;
   const int num_joints = 7;
-  Vector7d q_;
-  Vector7d initial_q_;
-  Vector7d dq_;
-  Vector7d dq_filtered_;
-  Vector7d k_gains_;
-  Vector7d d_gains_;
-  rclcpp::Time start_time_;
-  rclcpp::Duration init_time_ = rclcpp::Duration(0, 0);
-  void updateJointStates();
+  rclcpp::Duration elapsed_time_ = rclcpp::Duration(0, 0);
 };
 
 }  // namespace franka_example_controllers

@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>franka_robot_state_broadcaster</name>
-  <version>0.0.1</version>
-  <description>Broadcaster to publish FrankaState</description>
-  <maintainer email="s.bien@tum.de">Seongjin Bien</maintainer>
-  <license>Apache-2.0</license>
+  <version>0.1.13</version>
+  <description>Broadcaster to publish robot states</description>
+  <maintainer email="support@franka.de">Franka Robotics GmbH</maintainer>
+  <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

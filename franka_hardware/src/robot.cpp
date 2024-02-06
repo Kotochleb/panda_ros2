@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <franka_hardware/robot.hpp>
-
 #include <cassert>
 #include <mutex>
 
 #include <stdio.h>
 #include <iostream>
 #include <franka/control_tools.h>
+#include <franka/rate_limiting.h>
+#include <research_interface/robot/rbk_types.h>
 #include <rclcpp/logging.hpp>
 
+#include "franka_hardware/robot.hpp"
+
 namespace franka_hardware {
+
+Robot::Robot(std::unique_ptr<franka::Robot> robot, std::unique_ptr<Model> model)
+    : robot_(std::move(robot)), franka_hardware_model_(std::move(model)) {}
 
 Robot::Robot(const std::string& robot_ip, const rclcpp::Logger& logger) {
   franka::RealtimeConfig rt_config = franka::RealtimeConfig::kEnforce;
@@ -30,7 +35,10 @@ Robot::Robot(const std::string& robot_ip, const rclcpp::Logger& logger) {
     rt_config = franka::RealtimeConfig::kIgnore;
     RCLCPP_WARN(
         logger,
-        "You are not using a real-time kernel. Using a real-time kernel is strongly recommended!");
+        "You are not using a real-time kernel. Using a real-time kernel is strongly "
+        "recommended! Information about how to set up a real-time kernel can be found here: "
+        "https://frankaemika.github.io/docs/"
+        "installation_linux.html#setting-up-the-real-time-kernel");
   }
   try{
     robot_ = std::make_unique<franka::Robot>(robot_ip, rt_config);
@@ -277,8 +285,14 @@ void Robot::initializeContinuousReading() {
 }
 
 
-bool Robot::isStopped() const {
-  return stopped_;
+franka::RobotState Robot::readOnce() {
+  std::lock_guard<std::mutex> lock(control_mutex_);
+  if (!active_control_) {
+    current_state_ = robot_->readOnce();
+  } else {
+    current_state_ = readOnceActiveControl();
+  }
+  return current_state_;
 }
 
 //##############################//

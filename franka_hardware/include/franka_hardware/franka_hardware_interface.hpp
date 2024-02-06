@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Franka Emika GmbH
+// Copyright (c) 2023 Franka Robotics GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,6 +40,14 @@ namespace franka_hardware {
 
 class FrankaHardwareInterface : public hardware_interface::SystemInterface {
  public:
+  explicit FrankaHardwareInterface(std::shared_ptr<Robot> robot);
+  FrankaHardwareInterface();
+  FrankaHardwareInterface(const FrankaHardwareInterface&) = delete;
+  FrankaHardwareInterface& operator=(const FrankaHardwareInterface& other) = delete;
+  FrankaHardwareInterface& operator=(FrankaHardwareInterface&& other) = delete;
+  FrankaHardwareInterface(FrankaHardwareInterface&& other) = delete;
+  ~FrankaHardwareInterface() override = default;
+
   hardware_interface::return_type prepare_command_mode_switch(
       const std::vector<std::string>& start_interfaces,
       const std::vector<std::string>& stop_interfaces) override;
