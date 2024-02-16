@@ -26,24 +26,20 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    robot_ip_parameter_name = 'robot_ip'
     load_gripper_parameter_name = 'load_gripper'
-    use_fake_hardware_parameter_name = 'use_fake_hardware'
-    fake_sensor_commands_parameter_name = 'fake_sensor_commands'
     use_rviz_parameter_name = 'use_rviz'
+    world_parameter_name = 'world'
 
-    robot_ip = LaunchConfiguration(robot_ip_parameter_name)
     load_gripper = LaunchConfiguration(load_gripper_parameter_name)
-    use_fake_hardware = LaunchConfiguration(use_fake_hardware_parameter_name)
-    fake_sensor_commands = LaunchConfiguration(fake_sensor_commands_parameter_name)
     use_rviz = LaunchConfiguration(use_rviz_parameter_name)
+    world = LaunchConfiguration(world_parameter_name)
 
     franka_xacro_file = os.path.join(get_package_share_directory('franka_description'), 'robots',
                                      'panda_arm.urdf.xacro')
     robot_description = Command(
         [FindExecutable(name='xacro'), ' ', franka_xacro_file, ' hand:=', load_gripper,
-         ' robot_ip:=', robot_ip, ' use_fake_hardware:=', use_fake_hardware,
-         ' fake_sensor_commands:=', fake_sensor_commands])
+         ' robot_ip:=127.0.0.1', ' use_fake_hardware:=false',
+         ' fake_sensor_commands:=false'])
 
     rviz_file = os.path.join(get_package_share_directory('franka_description'), 'rviz',
                              'visualize_franka.rviz')
@@ -56,23 +52,19 @@ def generate_launch_description():
         ]
     )
 
+    gz_bridge_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare('franka_gazebo'),
+            'config',
+            'gz_bridge.yaml',
+        ]
+    )
+
     return LaunchDescription([
-        DeclareLaunchArgument(
-            robot_ip_parameter_name,
-            description='Hostname or IP address of the robot.'),
         DeclareLaunchArgument(
             use_rviz_parameter_name,
             default_value='false',
             description='Visualize the robot in Rviz'),
-        DeclareLaunchArgument(
-            use_fake_hardware_parameter_name,
-            default_value='false',
-            description='Use fake hardware'),
-        DeclareLaunchArgument(
-            fake_sensor_commands_parameter_name,
-            default_value='false',
-            description="Fake sensor commands. Only valid when '{}' is true".format(
-                use_fake_hardware_parameter_name)),
         DeclareLaunchArgument(
             load_gripper_parameter_name,
             default_value='true',
@@ -94,36 +86,55 @@ def generate_launch_description():
                  'rate': 30}],
         ),
         Node(
-            package='franka_control2',
-            executable='franka_control2_node',
-            parameters=[{'robot_description': robot_description}, franka_controllers],
-            remappings=[('joint_states', 'franka/joint_states')],
-            output={
-                'stdout': 'screen',
-                'stderr': 'screen',
-            },
-            on_exit=Shutdown(),
-        ),
-        Node(
             package='controller_manager',
             executable='spawner',
             arguments=['joint_state_broadcaster'],
             output='screen',
         ),
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=['franka_robot_state_broadcaster'],
-            output='screen',
-            condition=UnlessCondition(use_fake_hardware),
-        ),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([PathJoinSubstitution(
-                [FindPackageShare('franka_gripper'), 'launch', 'gripper.launch.py'])]),
-            launch_arguments={robot_ip_parameter_name: robot_ip,
-                              use_fake_hardware_parameter_name: use_fake_hardware}.items(),
-            condition=IfCondition(load_gripper)
+            PythonLaunchDescriptionSource(
+                PathJoinSubstitution(
+                    [
+                        get_package_share_directory("ros_gz_sim"),
+                        "launch",
+                        "gz_sim.launch.py",
+                    ]
+                )
+            ),
+            launch_arguments={"gz_args": "-r empty.sdf"}.items(),
+        ),
+        Node(
+            package="ros_gz_sim",
+            executable="create",
+            arguments=[
+                "-name",
+                "panda",
+                "-allow_renaming",
+                "true",
+                "-topic",
+                "robot_description",
+                # "-x",
+                # pose_x,
+                # "-y",
+                # pose_y,
+                # "-z",
+                # pose_z,
+                # "-R",
+                # rot_roll,
+                # "-P",
+                # rot_pitch,
+                # "-Y",
+                # rot_yaw,
+            ],
+            output="screen",
+        ),
 
+        Node(
+            package="ros_gz_bridge",
+            executable="parameter_bridge",
+            name="gz_bridge",
+            parameters=[{"config_file": gz_bridge_config_path}],
+            output="screen",
         ),
 
         Node(package='rviz2',
