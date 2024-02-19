@@ -34,6 +34,11 @@
           <sphere radius="${0.06+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="-0.041018 -0.00014 0.049974"/>
+        <mass value="0.629769"/>
+        <inertia ixx="0.00315" ixy="8.2904e-07" ixz="0.00015" iyy="0.00388" iyz="8.2299e-06" izz="0.004285"/>
+      </inertial>
     </link>
     <link name="${arm_id}_link1">
       <visual>
@@ -59,6 +64,11 @@
           <sphere radius="${0.06+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0.003875 0.002081 -0.04762"/>
+        <mass value="4.970684"/>
+        <inertia ixx="0.70337" ixy="-0.000139" ixz="0.006772" iyy="0.70661" iyz="0.019169" izz="0.009117"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint1" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
@@ -92,6 +102,11 @@
           <sphere radius="${0.06+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="-0.003141 -0.02872  0.003495"/>
+        <mass value="0.646926"/>
+        <inertia ixx="0.007962" ixy="-0.003925" ixz="0.010254" iyy="0.02811" iyz="0.000704" izz="0.025995"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint2" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-1.7628" soft_upper_limit="1.7628"/>
@@ -125,6 +140,11 @@
           <sphere radius="${0.06+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="2.7518e-02 3.9252e-02 -6.6502e-02"/>
+        <mass value="3.228604"/>
+        <inertia ixx="0.037242" ixy="-0.004761" ixz="-0.011396" iyy="0.036155" iyz="-0.012805" izz="0.01083"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint3" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
@@ -158,6 +178,11 @@
           <sphere radius="${0.06+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="-5.317e-02 1.04419e-01 2.7454e-02"/>
+        <mass value="3.587895"/>
+        <inertia ixx="0.025853" ixy="0.007796" ixz="-0.001332" iyy="0.019552" iyz="0.008641" izz="0.028323"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint4" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-3.0718" soft_upper_limit="-0.0698"/>
@@ -209,7 +234,11 @@
           <sphere radius="${0.025+safety_distance}" />
         </geometry>
       </collision>
-
+      <inertial>
+        <origin rpy="0 0 0" xyz="-1.1953e-02 4.1065e-02 -3.8437e-02"/>
+        <mass value="1.225946"/>
+        <inertia ixx="0.035549" ixy="-0.002117" ixz="-0.004037" iyy="0.029474" iyz="0.000229" izz="0.008627"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint5" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
@@ -243,6 +272,11 @@
           <sphere radius="${0.05+safety_distance}" />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="6.0149e-02 -1.4117e-02 -1.0517e-02"/>
+        <mass value="1.666555"/>
+        <inertia ixx="0.001964" ixy="0.000109" ixz="-0.001158" iyy="0.004354" iyz="0.000341" izz="0.005433"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint6" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525"/>
@@ -276,6 +310,11 @@
           <sphere radius="${0.04+safety_distance}"  />
         </geometry>
       </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="1.0517e-02 -4.252e-03 6.1597e-02"/>
+        <mass value="0.735522"/>
+        <inertia ixx="0.012516" ixy="-0.000428" ixz="-0.001196" iyy="0.010027" iyz="-0.000741" izz="0.004815"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint7" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
@@ -304,6 +343,11 @@
           <sphere radius="${0.03+safety_distance}"  />
         </geometry>
       </collision>
+      <inertial>
+        <mass value="0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+      </inertial>
     </link>
     <joint name="${arm_id}_joint8" type="fixed">
       <origin rpy="0 0 0" xyz="0 0 0.107"/>

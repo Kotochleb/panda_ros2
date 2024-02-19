@@ -21,7 +21,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shut
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -36,10 +36,12 @@ def generate_launch_description():
 
     franka_xacro_file = os.path.join(get_package_share_directory('franka_description'), 'robots',
                                      'panda_arm.urdf.xacro')
+    parameters_file = os.path.join(get_package_share_directory('franka_bringup'), 'config',
+                                     'controllers.yaml')
     robot_description = Command(
         [FindExecutable(name='xacro'), ' ', franka_xacro_file, ' hand:=', load_gripper,
-         ' robot_ip:=127.0.0.1', ' use_fake_hardware:=false',
-         ' fake_sensor_commands:=false'])
+         ' robot_ip:=127.0.0.1', ' use_fake_hardware:=false', ' fake_sensor_commands:=false',
+         ' gazebo:=true', ' parameters_file:=', parameters_file])
 
     rviz_file = os.path.join(get_package_share_directory('franka_description'), 'rviz',
                              'visualize_franka.rviz')
@@ -78,19 +80,12 @@ def generate_launch_description():
             parameters=[{'robot_description': robot_description}],
         ),
         Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher',
-            name='joint_state_publisher',
-            parameters=[
-                {'source_list': ['franka/joint_states', 'panda_gripper/joint_states'],
-                 'rate': 30}],
-        ),
-        Node(
             package='controller_manager',
             executable='spawner',
             arguments=['joint_state_broadcaster'],
             output='screen',
         ),
+
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 PathJoinSubstitution(
@@ -127,6 +122,11 @@ def generate_launch_description():
                 # rot_yaw,
             ],
             output="screen",
+        ),
+
+        SetParameter(
+            name="use_sim_time",
+            value="true"
         ),
 
         Node(

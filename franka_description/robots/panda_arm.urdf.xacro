@@ -5,14 +5,21 @@
   <xacro:arg name="robot_ip" default=""/> <!-- IP address or hostname of the robot" -->
   <xacro:arg name="use_fake_hardware" default="false"/>
   <xacro:arg name="fake_sensor_commands" default="false"/>
+  <xacro:arg name="gazebo" default="false"/>
+  <xacro:arg name="parameters_file" default="$(find franka_bringup)/config/controllers.yaml"/>
+  <xacro:arg name="parent" default="world"/>
 
   <xacro:include filename="$(find franka_description)/robots/panda_arm.xacro"/>
-  <xacro:panda_arm arm_id="$(arg arm_id)" safety_distance="0.03"/>
+  <xacro:panda_arm arm_id="$(arg arm_id)" safety_distance="0.03" connected_to="$(arg parent)"/>
+
+  <link name="world" />
 
   <xacro:if value="$(arg hand)">
     <xacro:include filename="$(find franka_description)/robots/hand.xacro"/>
     <xacro:hand ns="$(arg arm_id)" rpy="0 0 ${-pi/4}" connected_to="$(arg arm_id)_link8" safety_distance="0.03"/>
   </xacro:if>
   <xacro:include filename="$(find franka_description)/robots/panda_arm.ros2_control.xacro"/>
-  <xacro:panda_arm_ros2_control ns="$(arg arm_id)" robot_ip="$(arg robot_ip)" use_fake_hardware="$(arg use_fake_hardware)" fake_sensor_commands="$(arg fake_sensor_commands)"/>
+  <xacro:panda_arm_ros2_control ns="$(arg arm_id)" robot_ip="$(arg robot_ip)"
+         use_fake_hardware="$(arg use_fake_hardware)" fake_sensor_commands="$(arg fake_sensor_commands)"
+         use_sim="$(arg gazebo)" parameters_file="$(arg parameters_file)"/>
 </robot>
