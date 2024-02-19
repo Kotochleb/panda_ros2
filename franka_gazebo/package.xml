@@ -3,8 +3,8 @@
 <package format="3">
   <name>franka_gazebo</name>
   <version>0.0.0</version>
-  <description>>franka_gazebo provides launch files to simulate Franka Emika Panda inide of Gazebo</description>
-  <maintainer email="support@franka.de">Franka Emika GmbH</maintainer>
+  <description>franka_gazebo provides launch files to simulate Franka Emika Panda inide of Gazebo</description>
+  <maintainer email="krzy.wojciecho@gmail.com">Krzysztof Wojciechowski</maintainer>
   <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -18,6 +18,15 @@
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>xacro</exec_depend>
+
+  <depend>ament_index_cpp</depend>
+  <!-- default version to use in official ROS2 packages is Ignition Fortress for ROS2 Rolling -->
+  <depend condition="$IGNITION_VERSION == ''">ignition-gazebo6</depend>
+  <depend condition="$IGNITION_VERSION == citadel">ignition-gazebo3</depend>
+  <depend condition="$IGNITION_VERSION == edifice">ignition-gazebo5</depend>
+  <depend condition="$IGNITION_VERSION == fortress">ignition-gazebo6</depend>
+  <depend>ignition-plugin</depend>
+  <depend>pluginlib</depend>
 
   <test_depend>ament_cmake_clang_format</test_depend>
   <test_depend>ament_cmake_copyright</test_depend>

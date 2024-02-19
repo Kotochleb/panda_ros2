@@ -85,6 +85,12 @@ def generate_launch_description():
             arguments=['joint_state_broadcaster'],
             output='screen',
         ),
+        Node(
+            package='controller_manager',
+            executable='spawner',
+            arguments=['joint_trajectory_controller'],
+            output='screen',
+        ),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -96,7 +102,7 @@ def generate_launch_description():
                     ]
                 )
             ),
-            launch_arguments={"gz_args": "-r empty.sdf"}.items(),
+            launch_arguments={"gz_args": "-r empty.sdf -v 3"}.items(),
         ),
         Node(
             package="ros_gz_sim",

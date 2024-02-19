@@ -1,0 +1,10 @@
+<library path="franka_gazebo_plugins">
+    <class
+        name="franka_gazebo/PandaAntiGravityPlugin"
+        type="franka_gazebo::PandaAntiGravityPlugin"
+        base_class_type="ignition::gazebo::System">
+        <description>
+            Gravity removing plugin
+        </description>
+    </class>
+</library>
