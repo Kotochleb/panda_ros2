@@ -1,5 +1,6 @@
 #include "panda_anti_gravity_plugin.hpp"
 
+#include <ignition/gazebo/Link.hh>
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/components/Gravity.hh>
 #include <ignition/plugin/Register.hh>
@@ -21,6 +22,15 @@ void PandaAntiGravityPlugin::Configure(const ignition::gazebo::Entity& _entity,
   ignerr << "[PandaAntiGravityPlugin] link number: " << model.LinkCount(_ecm) << std::endl;
   for (const auto& link_entity : model.Links(_ecm)) {
     ignerr << "[PandaAntiGravityPlugin] link name: " << link_entity << std::endl;
+    gz::sim::Link link(link_entity);
+    if (!link.Valid(_ecm)) {
+      ignmsg << "Link entity not valid\n";
+
+    } else {
+      gz::math::Vector3d forceVector(0.0, 9.81, 0.0);
+      ignmsg << "set force:\n" << forceVector << "\n";
+      link.AddWorldForce(_ecm, forceVector);
+    }
   }
 
   _ecm.CreateComponent<ignition::gazebo::components::Gravity>(
