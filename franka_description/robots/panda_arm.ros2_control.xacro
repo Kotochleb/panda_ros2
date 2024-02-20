@@ -49,10 +49,6 @@
           name="ign_ros2_control::IgnitionROS2ControlPlugin">
           <parameters>${parameters_file}</parameters>
         </plugin>
-        <plugin filename="franka_gazebo-plugin"
-          name="franka_gazebo::PandaAntiGravityPlugin">
-          <root_link>${ns}_link0</root_link>
-        </plugin>
       </gazebo>
     </xacro:if>
   </xacro:macro>
